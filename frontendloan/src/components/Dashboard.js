@@ -24,15 +24,13 @@ function Dashboard() {
       let mappedData = {}
 
       if (user?.role === "ADMIN") {
-        response = await dashboardAPI.getAdminSummary()
-        const data = response.data
+        response = await dashboardAPI.getAdminSummary();
+        const data = response.data;
 
         mappedData = {
           totalLoans: (data?.totalVehicleLoans || 0) + (data?.totalStudentLoans || 0) + (data?.totalGeneralLoans || 0),
           totalAmount: data?.totalLoanPortfolio || 0,
           pendingLoans: data?.overdueLoans || 0,
-          approvedLoans: data?.loanStatusDistribution?.APPROVED || 0, // only if backend provides
-          disbursedLoans: data?.loanStatusDistribution?.DISBURSED || 0,
           totalCustomers: data?.totalCustomers || 0,
           totalAccounts: data?.totalAccounts || 0,
           collectionEfficiency: data?.collectionEfficiency || 0,
@@ -48,19 +46,6 @@ function Dashboard() {
           totalAmount: data?.totalDisbursedAmount || 0,
           loanStatusDistribution: data?.loanStatusDistribution || {},
         }
-
-      } else {
-        response = await dashboardAPI.getCustomerSummary()
-        const data = response.data
-
-        mappedData = {
-          totalVehicleLoans: data?.totalVehicleLoans || 0,
-          totalStudentLoans: data?.totalStudentLoans || 0,
-          totalAmount: data?.totalOutstandingAmount || 0,
-          totalMonthlyEMI: data?.totalMonthlyEMI || 0,
-          accountBalance: data?.accountBalance || 0,
-          recentActivities: data?.recentActivities || [],
-        }
       }
 
       setDashboardData(mappedData)
@@ -73,75 +58,6 @@ function Dashboard() {
     }
   }
 
-  // const loadDashboardData = async () => {
-  //   try {
-  //     setLoading(true)
-  //     console.log("[v0] Loading dashboard data for user role:", user?.role)
-
-  //     let response
-  //     let loanStats = {}
-
-  //     if (user?.role === "ADMIN") {
-  //       // console.log("[v0] Calling admin summary API")
-  //       response = await dashboardAPI.getAdminSummary()
-  //       // console.log("[v0] Fetching loan statistics for admin")
-  //       loanStats = await loanAPI.getLoanStats()
-  //       // console.log("[v0] Loan statistics:", loanStats)
-  //     } else if (user?.role === "LOAN_OFFICER") {
-  //       // console.log("[v0] Calling loan officer summary API")
-  //       response = await dashboardAPI.getLoanOfficerSummary()
-  //       // console.log("[v0] Fetching loan statistics for loan officer")
-  //       loanStats = await loanAPI.getLoanStats()
-  //       // console.log("[v0] Loan statistics:", loanStats)
-  //     } else {
-  //       // console.log("[v0] Calling customer summary API")
-  //       response = await dashboardAPI.getCustomerSummary()
-  //     }
-
-  //     console.log("[v0] Dashboard API response:", response)
-
-  //     const data = response?.data || response
-  //     console.log("[v0] Extracted data:", data)
-
-  //     const mappedData = {
-  //       totalLoans: loanStats.totalLoans || (data?.totalVehicleLoans || 0) + (data?.totalStudentLoans || 0),
-  //       totalAmount: data?.totalLoanPortfolio || data?.totalOutstandingAmount || 0,
-  //       pendingLoans: loanStats.pendingLoans || data?.overdueLoans || 0,
-  //       approvedLoans: loanStats.approvedLoans || 0,
-  //       disbursedLoans: loanStats.disbursedLoans || 0,
-  //       rejectedLoans: loanStats.rejectedLoans || 0,
-  //       totalCustomers: data?.totalCustomers || data?.totalCustomerCount || 0,
-  //       totalAccounts: data?.totalAccounts || 0,
-  //       collectionEfficiency: data?.collectionEfficiency || 0,
-  //       // Include original data for debugging
-  //       ...data,
-  //     }
-
-  //     setDashboardData(mappedData)
-
-  //     console.log("[v0] Final dashboard data set:", mappedData)
-  //   } catch (err) {
-  //     console.error("[v0] Failed to load dashboard data:", err)
-  //     console.error("[v0] Error details:", {
-  //       message: err.message,
-  //       status: err.status,
-  //       data: err.data,
-  //     })
-  //     setError(`Failed to load dashboard data: ${err.message}`)
-  //     setDashboardData({
-  //       pendingLoans: 0,
-  //       totalLoans: 0,
-  //       approvedLoans: 0,
-  //       disbursedLoans: 0,
-  //       rejectedLoans: 0,
-  //       totalCustomers: 0,
-  //       totalAmount: 0,
-  //       error: err.message,
-  //     })
-  //   } finally {
-  //     setLoading(false)
-  //   }
-  // }
 
   const loadAccounts = async () => {
     try {

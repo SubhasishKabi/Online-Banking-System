@@ -103,12 +103,8 @@ export const loanAPI = {
   //general
   apply: (data) => api.post("/loan/apply", data),
   getMyLoans: () => api.get("/loan/my-loans"),
-  getVehicleLoanDetails: (loanId) => api.get(`/vehicle-loans/${loanId}`),
-  getVehicleInstallments: (loanId) => api.get(`/vehicle-loans/${loanId}/installments`),
 
-  // Student loan APIs
-  getStudentLoanDetails: (loanId) => api.get(`/student-loans/${loanId}`),
-  getStudentInstallments: (loanId) => api.get(`/student-loan/${loanId}/installments`),
+
 
   // General loan APIs
   getGeneralLoanDetails: (loanId) => api.get(`/loan/${loanId}`),
@@ -125,6 +121,8 @@ export const loanAPI = {
   rejectLoan: (loanId, data) => api.post(`/loan/${loanId}/reject`, data),
   disburseLoan: (loanId) => api.post(`/loan/${loanId}/disburse`),
 
+  // Student loan APIs
+  getStudentLoanDetails: (loanId) => api.get(`/student-loans/${loanId}`),
   applyStudentLoan: (data) => api.post("/student-loans/apply", data),
   getMyStudentLoans: () => api.get("/student-loans/my-loans"),
   getStudentLoanDetails: (loanId) => api.get(`/student-loans/${loanId}`),
@@ -132,6 +130,8 @@ export const loanAPI = {
   payStudentLoanInstallment: (loanId, data) => api.post(`/student-loans/${loanId}/pay-installment`, data),
   closeStudentLoan: (loanId) => api.post(`/student-loans/${loanId}/close`),
   renewStudentLoan: (loanId, data) => api.post(`/student-loans/${loanId}/renew`, data),
+
+
 
   // Student Loan Officer/Admin endpoints
   getPendingStudentLoans: (page = 0, size = 20) => api.get(`/student-loans/pending?page=${page}&size=${size}`),
@@ -141,49 +141,90 @@ export const loanAPI = {
   rejectStudentLoan: (loanId, data) => api.post(`/student-loans/${loanId}/reject`, data),
   disburseStudentLoan: (loanId) => api.post(`/student-loans/${loanId}/disburse`),
 
+
   //vehicle loan endpoints
   applyVehicleLoan: (data) => api.post("/vehicle-loans/apply", data),
   getMyVehicleLoans: () => api.get("/vehicle-loans/my-loans"),
+  getVehicleLoanDetails: (loanId) => api.get(`/vehicle-loans/${loanId}`),
+  getVehicleLoanInstallments: (loanId) => api.get(`/vehicle-loans/${loanId}/installments`),
+
   // Vehicle Loan Officer/Admin endpoints
   getAllVehicleLoans: (page = 0, size = 20, status = "") =>
     api.get(`/vehicle-loans/all?page=${page}&size=${size}${status ? `&status=${status}` : ""}`),
   getVehicleLoanDetails: (loanId) => api.get(`/vehicle-loans/${loanId}`),
-  getVehicleLoanInstallments: (loanId) => api.get(`/vehicle-loans/${loanId}/installments`),
   payVehicleLoanInstallment: (loanId, data) => api.post(`/vehicle-loans/${loanId}/pay-installment`, data),
   closeVehicleLoan: (loanId) => api.post(`/vehicle-loans/${loanId}/close`),
   renewVehicleLoan: (loanId, data) => api.post(`/vehicle-loans/${loanId}/renew`, data),
+  disburseVehicleLoan: (loanId) => api.post(`/vehicle-loans/${loanId}/disburse`),
+  getPendingVehicleLoans: (page = 0, size = 20) =>
+    api.get(`/vehicle-loans/pending?page=${page}&size=${size}`),
+  approveVehicleLoan: (loanId) => api.post(`/vehicle-loans/${loanId}/approve`),
+  rejectVehicleLoan: (loanId, data) => api.post(`/vehicle-loans/${loanId}/reject`, data),
 
   getLoanStats: async () => {
     try {
-      const [pendingResponse, approvedResponse, disbursedResponse, rejectedResponse] = await Promise.all([
+      // --- General Loans ---
+      const [generalPending, generalApproved, generalActive, generalDisbursed, generalRejected] = await Promise.all([
         api.get("/loan/pending?page=0&size=1"),
         api.get("/loan/all?page=0&size=1&status=APPROVED"),
+        api.get("/loan/all?page=0&size=1&status=ACTIVE"),
         api.get("/loan/all?page=0&size=1&status=DISBURSED"),
         api.get("/loan/all?page=0&size=1&status=REJECTED"),
-      ])
+      ]);
 
-      return {
-        pendingLoans: pendingResponse.data?.totalElements || 0,
-        approvedLoans: approvedResponse.data?.totalElements || 0,
-        disbursedLoans: disbursedResponse.data?.totalElements || 0,
-        rejectedLoans: rejectedResponse.data?.totalElements || 0,
-        totalLoans:
-          (pendingResponse.data?.totalElements || 0) +
-          (approvedResponse.data?.totalElements || 0) +
-          (disbursedResponse.data?.totalElements || 0) +
-          (rejectedResponse.data?.totalElements || 0),
-      }
+      // --- Student Loans ---
+      const [studentPending, studentApproved, studentActive, studentDisbursed, studentRejected] = await Promise.all([
+        api.get("/student-loans/pending?page=0&size=1"),
+        api.get("/student-loans/all?page=0&size=1&status=APPROVED"),
+        api.get("/student-loans/all?page=0&size=1&status=ACTIVE"),
+        api.get("/student-loans/all?page=0&size=1&status=DISBURSED"),
+        api.get("/student-loans/all?page=0&size=1&status=REJECTED"),
+      ]);
+
+      // --- Vehicle Loans ---
+      const [vehiclePending, vehicleApproved, vehicleActive, vehicleDisbursed, vehicleRejected] = await Promise.all([
+        api.get("/vehicle-loans/pending?page=0&size=1"),
+        api.get("/vehicle-loans/all?page=0&size=1&status=APPROVED"),
+        api.get("/vehicle-loans/all?page=0&size=1&status=ACTIVE"),
+        api.get("/vehicle-loans/all?page=0&size=1&status=DISBURSED"),
+        api.get("/vehicle-loans/all?page=0&size=1&status=REJECTED"),
+      ]);
+
+      // --- Sum totals ---
+      const pendingLoans =
+        (generalPending.data?.totalElements || 0) +
+        (studentPending.data?.totalElements || 0) +
+        (vehiclePending.data?.totalElements || 0);
+
+      const approvedLoans =
+        (generalApproved.data?.totalElements || 0) +
+        (studentApproved.data?.totalElements || 0) +
+        (vehicleApproved.data?.totalElements || 0);
+
+      const activeLoans =
+        (generalActive.data?.totalElements || 0) +
+        (studentActive.data?.totalElements || 0) +
+        (vehicleActive.data?.totalElements || 0);
+
+      const disbursedLoans =
+        (generalDisbursed.data?.totalElements || 0) +
+        (studentDisbursed.data?.totalElements || 0) +
+        (vehicleDisbursed.data?.totalElements || 0);
+
+      const rejectedLoans =
+        (generalRejected.data?.totalElements || 0) +
+        (studentRejected.data?.totalElements || 0) +
+        (vehicleRejected.data?.totalElements || 0);
+
+      const totalLoans = pendingLoans + approvedLoans + activeLoans + disbursedLoans + rejectedLoans;
+
+      return { pendingLoans, approvedLoans, activeLoans, disbursedLoans, rejectedLoans, totalLoans };
     } catch (error) {
-      console.error("Failed to fetch loan statistics:", error)
-      return {
-        pendingLoans: 0,
-        approvedLoans: 0,
-        disbursedLoans: 0,
-        rejectedLoans: 0,
-        totalLoans: 0,
-      }
+      console.error("Failed to fetch loan statistics:", error);
+      return { pendingLoans: 0, approvedLoans: 0, activeLoans: 0, disbursedLoans: 0, rejectedLoans: 0, totalLoans: 0 };
     }
-  },
+  }
+
 }
 
 // Transaction API
@@ -201,16 +242,12 @@ export const transactionAPI = {
 
 // Dashboard API
 export const dashboardAPI = {
-  getCustomerSummary: () => api.get("/dashboard/customer-summary"),
+  // getCustomerSummary: () => api.get("/dashboard/customer-summary"),
   getLoanOfficerSummary: () => api.get("/dashboard/loan-officer-summary"),
   getAdminSummary: () => api.get("/dashboard/admin-summary"),
   getLoanAnalytics: () => api.get("/dashboard/loan-analytics"),
   getPortfolioSummary: () => api.get("/dashboard/portfolio-summary"),
 
-  getSystemHealth: () => api.get("/dashboard/system-health"),
-  getRecentActivity: () => api.get("/dashboard/recent-activity"),
-  getMonthlyStats: () => api.get("/dashboard/monthly-stats"),
-  getYearlyStats: () => api.get("/dashboard/yearly-stats"),
 }
 
 // Profile API
@@ -219,77 +256,8 @@ export const profileAPI = {
   updateProfile: (data) => api.put("/profile", data),
   changePassword: (data) => api.post("/profile/change-password", data),
 
-  uploadProfilePicture: (formData) =>
-    api.post("/profile/upload-picture", formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    }),
-  deleteAccount: () => api.delete("/profile/delete-account"),
-  getSecuritySettings: () => api.get("/profile/security-settings"),
-  updateSecuritySettings: (data) => api.put("/profile/security-settings", data),
 }
 
-export const reportsAPI = {
-  getLoanReport: (params) => api.get("/reports/loans", { params }),
-  getTransactionReport: (params) => api.get("/reports/transactions", { params }),
-  getCustomerReport: (params) => api.get("/reports/customers", { params }),
-  getPortfolioReport: (params) => api.get("/reports/portfolio", { params }),
-  exportLoanReport: (params) => api.get("/reports/loans/export", { params, responseType: "blob" }),
-  exportTransactionReport: (params) => api.get("/reports/transactions/export", { params, responseType: "blob" }),
-  getComplianceReport: () => api.get("/reports/compliance"),
-  getRiskAssessmentReport: () => api.get("/reports/risk-assessment"),
-}
 
-export const notificationsAPI = {
-  getNotifications: (page = 0, size = 20) => api.get(`/notifications?page=${page}&size=${size}`),
-  markAsRead: (notificationId) => api.put(`/notifications/${notificationId}/read`),
-  markAllAsRead: () => api.put("/notifications/mark-all-read"),
-  deleteNotification: (notificationId) => api.delete(`/notifications/${notificationId}`),
-  getUnreadCount: () => api.get("/notifications/unread-count"),
-  updatePreferences: (data) => api.put("/notifications/preferences", data),
-}
-
-export const settingsAPI = {
-  getSystemSettings: () => api.get("/settings/system"),
-  updateSystemSettings: (data) => api.put("/settings/system", data),
-  getLoanSettings: () => api.get("/settings/loans"),
-  updateLoanSettings: (data) => api.put("/settings/loans", data),
-  getInterestRates: () => api.get("/settings/interest-rates"),
-  updateInterestRates: (data) => api.put("/settings/interest-rates", data),
-  getFeesAndCharges: () => api.get("/settings/fees-charges"),
-  updateFeesAndCharges: (data) => api.put("/settings/fees-charges", data),
-}
-
-export const auditAPI = {
-  getAuditLogs: (page = 0, size = 20, filters = {}) =>
-    api.get(`/audit/logs?page=${page}&size=${size}`, { params: filters }),
-  getUserActivity: (userId, page = 0, size = 20) => api.get(`/audit/user/${userId}?page=${page}&size=${size}`),
-  getLoanActivity: (loanId) => api.get(`/audit/loan/${loanId}`),
-  getSystemActivity: (hours = 24) => api.get(`/audit/system?hours=${hours}`),
-  exportAuditLogs: (filters = {}) => api.get("/audit/logs/export", { params: filters, responseType: "blob" }),
-}
-
-export const customerAPI = {
-  getAllCustomers: (page = 0, size = 20, search = "") =>
-    api.get(`/customers?page=${page}&size=${size}&search=${search}`),
-  getCustomerById: (customerId) => api.get(`/customers/${customerId}`),
-  updateCustomer: (customerId, data) => api.put(`/customers/${customerId}`, data),
-  deactivateCustomer: (customerId) => api.put(`/customers/${customerId}/deactivate`),
-  activateCustomer: (customerId) => api.put(`/customers/${customerId}/activate`),
-  getCustomerLoans: (customerId) => api.get(`/customers/${customerId}/loans`),
-  getCustomerTransactions: (customerId, page = 0, size = 20) =>
-    api.get(`/customers/${customerId}/transactions?page=${page}&size=${size}`),
-  getCustomerAccounts: (customerId) => api.get(`/customers/${customerId}/accounts`),
-  resetCustomerPassword: (customerId) => api.post(`/customers/${customerId}/reset-password`),
-}
-
-export const backupAPI = {
-  createBackup: () => api.post("/backup/create"),
-  getBackupHistory: () => api.get("/backup/history"),
-  downloadBackup: (backupId) => api.get(`/backup/${backupId}/download`, { responseType: "blob" }),
-  restoreBackup: (backupId) => api.post(`/backup/${backupId}/restore`),
-  deleteBackup: (backupId) => api.delete(`/backup/${backupId}`),
-  getBackupSettings: () => api.get("/backup/settings"),
-  updateBackupSettings: (data) => api.put("/backup/settings", data),
-}
 
 export default api

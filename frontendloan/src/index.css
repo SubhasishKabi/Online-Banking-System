@@ -300,9 +300,16 @@ body {
 }
 
 .status-approved {
-  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+  background: linear-gradient(135deg, #8b88d2 0%, #bbc3de 100%);
   color: #065f46;
-  border: 1px solid #10b981;
+  border: 1px solid #5c5c0e;
+}
+
+
+.status-active {
+  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+  color: #5f4c06;
+  border: 1px solid #83bec2;
 }
 
 .status-rejected {
@@ -311,7 +318,7 @@ body {
   border: 1px solid #ef4444;
 }
 
-.status-active {
+.status-disbursed {
   background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
   color: #1e40af;
   border: 1px solid #3b82f6;

@@ -29,9 +29,6 @@ function LoanManagement() {
     newTenure: "",
   })
 
-
-
-
   useEffect(() => {
     if (user?.role === "ADMIN" || user?.role === "LOAN_OFFICER") {
       loadDashboardData()
@@ -40,10 +37,19 @@ function LoanManagement() {
         loadPendingLoans()
       } else if (activeTab === "all") {
         loadAllLoans()
-        // loadAllMyLoans()
       }
     }
   }, [user, activeTab, currentPage, filterStatus])
+
+  useEffect(() => {
+    if (!success && !error) return
+    const timer = setTimeout(() => {
+      setSuccess("")
+      setError("")
+    }, 3000) // 3s auto-dismiss
+    return () => clearTimeout(timer)
+  }, [success, error])
+
 
   const loadDashboardData = async () => {
     try {
@@ -65,47 +71,81 @@ function LoanManagement() {
 
   const loadPendingLoans = async () => {
     try {
-      const response = await loanAPI.getPendingLoans(currentPage, pageSize)
-      setPendingLoans(response.data.content || [])
-      setTotalPages(response.data.totalPages || 0)
-    } catch (err) {
-      setError("Failed to load pending loans")
-    }
-  }
-
-
-
-
-
-  const loadAllLoans = async () => {
-    setLoading(true)
-    try {
-      // fetch in parallel
       const [general, student, vehicle] = await Promise.all([
-        loanAPI.getAllLoans(currentPage, pageSize, filterStatus),
-        loanAPI.getAllStudentLoans(currentPage, pageSize, filterStatus),
-        // loanAPI.getMyVehicleLoans(currentPage, pageSize, filterStatus),
-        loanAPI.getAllVehicleLoans(currentPage, pageSize, filterStatus),
+        loanAPI.getPendingLoans(currentPage, pageSize),
+        loanAPI.getPendingStudentLoans(currentPage, pageSize),
+        loanAPI.getPendingVehicleLoans(currentPage, pageSize),
       ])
 
-      // merge and add type field
-      const mergedLoans = [
-        ...(general.data.content || []).map(l => ({ ...l, type: "General" })),
-        ...(student.data.content || []).map(l => ({ ...l, type: "Student" })),
-        ...(vehicle.data.content || []).map(l => ({ ...l, type: "Vehicle" })),
+      // Pending loans
+      const mergedPendingLoans = [
+        ...(general.data.content || []).map(l => ({
+          ...l,
+          type: "General",
+          principal: l.principal ?? l.loanAmount ?? l.loan_amount, // normalize
+        })),
+        ...(student.data.content || []).map(l => ({
+          ...l,
+          type: "Student",
+          principal: l.principal ?? l.loanAmount ?? l.loan_amount, // normalize
+        })),
+        ...(vehicle.data.content || []).map(l => ({
+          ...l,
+          type: "Vehicle",
+          principal: l.principal ?? l.loanAmount ?? l.loan_amount, // normalize
+        })),
       ]
+      setPendingLoans(mergedPendingLoans)
 
-      setAllLoans(mergedLoans)
-      console.log("Merged Loans:", mergedLoans)
+      console.log("Pending loans loaded:", mergedPendingLoans)
 
-      // optional: total pages — take max of all 3 (assuming pagination per type)
       const maxPages = Math.max(
         general.data.totalPages || 0,
         student.data.totalPages || 0,
         vehicle.data.totalPages || 0
       )
       setTotalPages(maxPages)
+    } catch (err) {
+      console.error(err)
+      setError("Failed to load pending loans")
+    }
+  }
 
+  const loadAllLoans = async () => {
+    setLoading(true)
+    try {
+      const [general, student, vehicle] = await Promise.all([
+        loanAPI.getAllLoans(currentPage, pageSize, filterStatus),
+        loanAPI.getAllStudentLoans(currentPage, pageSize, filterStatus),
+        loanAPI.getAllVehicleLoans(currentPage, pageSize, filterStatus),
+      ])
+
+      const mergedLoans = [
+        ...(general.data.content || []).map(l => ({
+          ...l,
+          type: "General",
+          principal: l.principal ?? l.loanAmount ?? l.loan_amount, // normalize
+        })),
+        ...(student.data.content || []).map(l => ({
+          ...l,
+          type: "Student",
+          principal: l.principal ?? l.loanAmount ?? l.loan_amount, // normalize
+        })),
+        ...(vehicle.data.content || []).map(l => ({
+          ...l,
+          type: "Vehicle",
+          principal: l.principal ?? l.loanAmount ?? l.loan_amount, // normalize
+        })),
+      ]
+      setAllLoans(mergedLoans)
+
+
+      const maxPages = Math.max(
+        general.data.totalPages || 0,
+        student.data.totalPages || 0,
+        vehicle.data.totalPages || 0
+      )
+      setTotalPages(maxPages)
     } catch (err) {
       console.error(err)
       setError("Failed to load all loans")
@@ -113,9 +153,6 @@ function LoanManagement() {
       setLoading(false)
     }
   }
-
-
-
 
   const loadLoanDetails = async (loanId, loanType) => {
     try {
@@ -129,12 +166,12 @@ function LoanManagement() {
       } else if (loanType === "Student") {
         [loanResponse, installmentsResponse] = await Promise.all([
           loanAPI.getStudentLoanDetails(loanId),
-          loanAPI.getStudentInstallments(loanId),
+          loanAPI.getStudentLoanInstallments(loanId), // ✅ FIXED
         ])
       } else if (loanType === "Vehicle") {
         [loanResponse, installmentsResponse] = await Promise.all([
           loanAPI.getVehicleLoanDetails(loanId),
-          loanAPI.getVehicleInstallments(loanId),
+          loanAPI.getVehicleLoanInstallments(loanId), // ✅ FIXED
         ])
       }
 
@@ -147,54 +184,69 @@ function LoanManagement() {
   }
 
 
-  const handleApproveLoan = async (loanId) => {
+  const handleApproveLoan = async (loan) => {
     if (window.confirm("Are you sure you want to approve this loan?")) {
       try {
         setError("")
-        await loanAPI.approveLoan(loanId)
+        if (loan.type === "General") {
+          await loanAPI.approveLoan(loan.id)
+        } else if (loan.type === "Student") {
+          await loanAPI.approveStudentLoan(loan.id)
+        } else if (loan.type === "Vehicle") {
+          await loanAPI.approveVehicleLoan(loan.id)
+        }
         setSuccess("Loan approved successfully!")
-        loadPendingLoans()
-        loadAllLoans()
-        // loadAllMyLoans()
-        loadLoanStats()
+        // OPTIONAL: wait for all reloads to complete before UI shows buttons
+        await Promise.all([loadPendingLoans(), loadAllLoans(), loadLoanStats()])
       } catch (err) {
-        setError(err.response?.data?.message || "Failed to approve loan")
+        console.error("Approve error:", err)
+        setError(err.message || "Failed to approve loan")
       }
     }
   }
 
-  const handleRejectLoan = async (loanId) => {
+  const handleRejectLoan = async (loan) => {
     if (!rejectReason.trim()) {
       setError("Please provide a reason for rejection")
       return
     }
-
     try {
       setError("")
-      await loanAPI.rejectLoan(loanId, { reason: rejectReason })
+      if (loan.type === "General") {
+        await loanAPI.rejectLoan(loan.id, { reason: rejectReason })
+      } else if (loan.type === "Student") {
+        await loanAPI.rejectStudentLoan(loan.id, { reason: rejectReason })
+      } else if (loan.type === "Vehicle") {
+        await loanAPI.rejectVehicleLoan(loan.id, { reason: rejectReason })
+      }
+
       setSuccess("Loan rejected successfully!")
       setRejectReason("")
       setSelectedLoan(null)
-      loadPendingLoans()
-      loadAllLoans()
-      loadLoanStats()
+      await Promise.all([loadPendingLoans(), loadAllLoans(), loadLoanStats()])
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to reject loan")
+      console.error("Reject error:", err)
+      setError(err.message || "Failed to reject loan")
     }
   }
 
-  const handleDisburseLoan = async (loanId) => {
+  const handleDisburseLoan = async (loan) => {
     if (window.confirm("Are you sure you want to disburse this loan?")) {
       try {
         setError("")
-        await loanAPI.disburseLoan(loanId)
+        if (loan.type === "General") {
+          await loanAPI.disburseLoan(loan.id)
+        } else if (loan.type === "Student") {
+          await loanAPI.disburseStudentLoan(loan.id)
+        } else if (loan.type === "Vehicle") {
+          await loanAPI.disburseVehicleLoan(loan.id)
+        }
+
         setSuccess("Loan disbursed successfully!")
-        loadPendingLoans()
-        loadAllLoans()
-        // loadAllMyLoans()
-        loadLoanStats()
+        await Promise.all([loadPendingLoans(), loadAllLoans(), loadLoanStats()])
       } catch (err) {
-        setError(err.response?.data?.message || "Failed to disburse loan")
+        console.error("Disburse error:", err)
+        setError(err.message || "Failed to disburse loan")
       }
     }
   }
@@ -214,8 +266,7 @@ function LoanManagement() {
       setSuccess("Loan renewed successfully!")
       setRenewalForm({ additionalAmount: "", newTenure: "" })
       setSelectedLoanDetails(null)
-      loadAllLoans()
-      // loadAllMyLoans()
+      await loadAllLoans()
     } catch (err) {
       setError(err.response?.data?.message || "Failed to renew loan")
     }
@@ -238,22 +289,21 @@ function LoanManagement() {
   const getStatusColor = (status) => {
     switch (status) {
       case "APPROVED":
-      case "DISBURSED":
       case "ACTIVE":
         return "status-active"
       case "PENDING":
         return "status-pending"
+      case "DISBURSED":
+
+        return "status-disbursed"
       case "REJECTED":
+        return "status-rejected"
       case "CLOSED":
         return "status-inactive"
       default:
         return "status-pending"
     }
   }
-
-  // if (loading) {
-  //   return <div className="loading">Loading loan management ...</div>
-  // }
 
   if (user?.role !== "ADMIN" && user?.role !== "LOAN_OFFICER") {
     return (
@@ -304,16 +354,25 @@ function LoanManagement() {
           {loanStats && (
             <div className="grid grid-4">
               <div className="card">
+                <h3>Active Loans/Money Credited</h3>
+                <p className="stat-number status-active">{loanStats.activeLoans}</p>
+              </div>
+              <div className="card">
+                <h3>Approved Loans/Money not Credited</h3>
+                <p className="stat-number status-approved">{loanStats.approvedLoans}</p>
+              </div>
+              <div className="card">
                 <h3>Pending Applications</h3>
                 <p className="stat-number status-pending">{loanStats.pendingLoans}</p>
               </div>
+
               <div className="card">
-                <h3>Approved Loans</h3>
-                <p className="stat-number status-active">{loanStats.approvedLoans}</p>
+                <h3>Disbursed Loans/Partially Credited</h3>
+                <p className="stat-number status-disbursed">{loanStats.disbursedLoans}</p>
               </div>
               <div className="card">
-                <h3>Disbursed Loans</h3>
-                <p className="stat-number status-active">{loanStats.disbursedLoans}</p>
+                <h3>Rejected Loans</h3>
+                <p className="stat-number status-rejected">{loanStats.rejectedLoans}</p>
               </div>
               <div className="card">
                 <h3>Total Loans</h3>
@@ -322,7 +381,7 @@ function LoanManagement() {
             </div>
           )}
 
-          {dashboardData && (
+          {/* {dashboardData && (
             <div className="card">
               <h3>Portfolio Summary</h3>
               <div className="grid grid-3">
@@ -340,7 +399,7 @@ function LoanManagement() {
                 </div>
               </div>
             </div>
-          )}
+          )} */}
         </div>
       )}
 
@@ -373,7 +432,8 @@ function LoanManagement() {
 
             <div className="modal-actions">
               <button
-                onClick={() => handleRejectLoan(selectedLoan.id)}
+                // FIX: pass the full loan object
+                onClick={() => handleRejectLoan(selectedLoan)}
                 className="btn btn-danger"
                 disabled={!rejectReason.trim()}
               >
@@ -529,7 +589,8 @@ function LoanManagement() {
 
                   <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginTop: "16px" }}>
                     <button
-                      onClick={() => handleApproveLoan(loan.id)}
+                      // FIX: pass full object
+                      onClick={() => handleApproveLoan(loan)}
                       className="btn btn-success"
                       style={{ fontSize: "12px", padding: "6px 12px" }}
                     >
@@ -638,16 +699,17 @@ function LoanManagement() {
                       </td>
                       <td>
                         <div style={{ display: "flex", gap: "4px", flexWrap: "wrap" }}>
-                          <button
+                          {/* <button
                             onClick={() => loadLoanDetails(loan.id, loan.type)}
                             className="btn btn-primary"
                             style={{ fontSize: "11px", padding: "4px 8px" }}
                           >
                             Details
-                          </button>
+                          </button> */}
                           {loan.status === "APPROVED" && (
                             <button
-                              onClick={() => handleDisburseLoan(loan.id)}
+                              // FIX: pass full object
+                              onClick={() => handleDisburseLoan(loan)}
                               className="btn btn-success"
                               style={{ fontSize: "11px", padding: "4px 8px" }}
                             >
@@ -657,7 +719,8 @@ function LoanManagement() {
                           {loan.status === "PENDING" && (
                             <>
                               <button
-                                onClick={() => handleApproveLoan(loan.id)}
+                                // FIX: pass full object
+                                onClick={() => handleApproveLoan(loan)}
                                 className="btn btn-success"
                                 style={{ fontSize: "11px", padding: "4px 8px" }}
                               >
