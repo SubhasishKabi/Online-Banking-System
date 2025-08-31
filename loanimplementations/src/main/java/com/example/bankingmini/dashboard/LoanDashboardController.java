@@ -16,12 +16,12 @@ public class LoanDashboardController {
     @Autowired
     private RoleBasedAccessControl accessControl;
 
-    @GetMapping("/customer-summary")
-    public ResponseEntity<CustomerDashboardDto> getCustomerDashboard() {
-        Customer user = accessControl.getCurrentUser();
-        CustomerDashboardDto dashboard = dashboardService.getCustomerDashboard(user.getId());
-        return ResponseEntity.ok(dashboard);
-    }
+//    @GetMapping("/customer-summary")
+//    public ResponseEntity<CustomerDashboardDto> getCustomerDashboard() {
+//        Customer user = accessControl.getCurrentUser();
+//        CustomerDashboardDto dashboard = dashboardService.getCustomerDashboard(user.getId());
+//        return ResponseEntity.ok(dashboard);
+//    }
 
     @GetMapping("/loan-officer-summary")
     public ResponseEntity<LoanOfficerDashboardDto> getLoanOfficerDashboard() {

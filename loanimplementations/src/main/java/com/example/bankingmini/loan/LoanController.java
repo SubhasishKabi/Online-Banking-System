@@ -39,17 +39,6 @@ public class LoanController {
                 .orElseThrow(() -> new AccessDeniedException("User not found"));
     }
 
-//    @PostMapping("/request")
-//    public LoanResponse request(@Valid @RequestBody LoanRequest req) {
-//        System.out.println("hello");
-//        var c = getCurrentUser();
-//        var loan = service.request(c, req.principal(), req.type(), req.interestRate(), req.tenureMonths());
-//        return new LoanResponse(
-//                loan.getId(), loan.getStatus(), loan.getApprovedAt(),
-//                loan.getType(), loan.getPrincipal(), loan.getInterestRate(), loan.getTenureMonths()
-//        );
-//    }
-
     @PostMapping("/apply")
     public ResponseEntity<LoanDto> applyForLoan(@RequestBody LoanApplicationRequest request) {
         Customer user = getCurrentUser();

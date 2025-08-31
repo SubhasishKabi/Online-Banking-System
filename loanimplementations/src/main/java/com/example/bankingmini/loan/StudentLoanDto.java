@@ -1,6 +1,7 @@
 package com.example.bankingmini.loan;
 
 import lombok.*;
+
 import java.math.BigDecimal;
 import java.time.Instant;
 
@@ -15,7 +16,7 @@ public class StudentLoanDto {
     private String customerEmail;
     private Long accountId;
     private String accountNumber;
-    private BigDecimal loanAmount;
+        private BigDecimal loanAmount;
     private BigDecimal interestRate;
     private Integer tenureMonths;
     private BigDecimal monthlyEmi;

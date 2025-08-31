@@ -7,6 +7,8 @@ import com.example.bankingmini.account.AccountRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -87,12 +89,23 @@ public class StudentLoanService {
         StudentLoan loan = studentLoanRepository.findById(loanId)
                 .orElseThrow(() -> new RuntimeException("Loan not found"));
 
-        if (!loan.getCustomer().getId().equals(customerId)) {
+        // Get current authentication
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        boolean isAdmin = authentication.getAuthorities().stream()
+                .anyMatch(auth -> auth.getAuthority().equals("ROLE_ADMIN"));
+
+        boolean isLoanOfficer = authentication.getAuthorities().stream()
+                .anyMatch(auth -> auth.getAuthority().equals("ROLE_LOAN_OFFICER"));
+
+        // Only owner, admin, or loan officer can access
+        if (!isAdmin && !isLoanOfficer && !loan.getCustomer().getId().equals(customerId)) {
             throw new RuntimeException("Access denied: Loan does not belong to user");
         }
 
         return convertToDto(loan);
     }
+
 
     public Page<StudentLoanDto> getPendingLoans(Pageable pageable) {
         Page<StudentLoan> loans = studentLoanRepository.findByStatusOrderByApplicationDateDesc("PENDING", pageable);
@@ -182,44 +195,6 @@ public class StudentLoanService {
 
         studentLoanRepository.save(loan);
     }
-
-//    public void disburseLoan(Long loanId, BigDecimal disbursementAmount) {
-//        StudentLoan loan = studentLoanRepository.findById(loanId)
-//                .orElseThrow(() -> new RuntimeException("Loan not found"));
-//
-//        if (!loan.isApproved() && !loan.isDisbursed()) {
-//            throw new RuntimeException("Loan is not approved for disbursement");
-//        }
-//
-//        if (loan.getAccount() != null) {
-//            Account account = loan.getAccount();
-//            account.setBalance(account.getBalance().add(disbursementAmount));
-//            accountRepository.save(account);
-//        }
-//
-//        loan.setStatus("DISBURSED");
-//        if (loan.getDisbursementDate() == null) {
-//            loan.setDisbursementDate(Instant.now());
-//        }
-//
-//        // Update next disbursement if applicable
-//        BigDecimal remainingAmount = loan.getOutstandingAmount().subtract(disbursementAmount);
-//        if (remainingAmount.compareTo(BigDecimal.ZERO) > 0) {
-//            loan.setNextDisbursementAmount(remainingAmount);
-//            loan.setNextDisbursementDate(Instant.now().plus(180, ChronoUnit.DAYS)); // Next semester
-//        } else {
-//            loan.setNextDisbursementAmount(null);
-//            loan.setNextDisbursementDate(null);
-//            loan.setStatus("ACTIVE");
-//
-//            // Set EMI start date after course completion + moratorium period
-//            Instant courseEndDate = Instant.now().plus(loan.getCourseDurationYears() * 365L, ChronoUnit.DAYS);
-//            loan.setCourseCompletionDate(courseEndDate);
-//            loan.setEmiStartDate(courseEndDate.plus(loan.getMoratoriumPeriodMonths() * 30L, ChronoUnit.DAYS));
-//        }
-//
-//        studentLoanRepository.save(loan);
-//    }
 
     public void renewLoan(Long loanId, BigDecimal additionalAmount, Integer newTenure) {
         StudentLoan loan = studentLoanRepository.findById(loanId)

@@ -37,68 +37,91 @@ public class LoanDashboardService {
     @Autowired
     private LoanRepository generalLoanRepository;
 
-    public CustomerDashboardDto getCustomerDashboard(Long customerId) {
-        // Get customer's vehicle loans
-        var vehicleLoans = vehicleLoanRepository.findByCustomerIdOrderByApplicationDateDesc(customerId);
-        var studentLoans = studentLoanRepository.findByCustomerIdOrderByApplicationDateDesc(customerId);
-
-        // Calculate totals
-        BigDecimal totalVehicleLoanAmount = vehicleLoans.stream()
-                .map(loan -> loan.getOutstandingAmount() != null ? loan.getOutstandingAmount() : BigDecimal.ZERO)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        BigDecimal totalStudentLoanAmount = studentLoans.stream()
-                .map(loan -> loan.getOutstandingAmount() != null ? loan.getOutstandingAmount() : BigDecimal.ZERO)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        BigDecimal totalMonthlyEMI = BigDecimal.ZERO;
-        totalMonthlyEMI = totalMonthlyEMI.add(vehicleLoans.stream()
-                .filter(loan -> "ACTIVE".equals(loan.getStatus()) || "DISBURSED".equals(loan.getStatus()))
-                .map(loan -> loan.getMonthlyEmi() != null ? loan.getMonthlyEmi() : BigDecimal.ZERO)
-                .reduce(BigDecimal.ZERO, BigDecimal::add));
-
-        totalMonthlyEMI = totalMonthlyEMI.add(studentLoans.stream()
-                .filter(loan -> "ACTIVE".equals(loan.getStatus()))
-                .map(loan -> loan.getMonthlyEmi() != null ? loan.getMonthlyEmi() : BigDecimal.ZERO)
-                .reduce(BigDecimal.ZERO, BigDecimal::add));
-
-        // Get account balance
-        var accounts = accountRepository.findById(customerId);
-        BigDecimal totalBalance = accounts.stream()
-                .map(account -> account.getBalance())
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        // Recent loan activities
-        List<RecentActivityDto> recentActivities = new ArrayList<>();
-        vehicleLoans.stream().limit(3).forEach(loan -> {
-            recentActivities.add(RecentActivityDto.builder()
-                    .type("VEHICLE_LOAN")
-                    .description("Vehicle Loan - " + loan.getVehicleType())
-                    .amount(loan.getLoanAmount())
-                    .status(loan.getStatus())
-                    .date(loan.getApplicationDate())
-                    .build());
-        });
-
-        studentLoans.stream().limit(3).forEach(loan -> {
-            recentActivities.add(RecentActivityDto.builder()
-                    .type("STUDENT_LOAN")
-                    .description("Student Loan - " + loan.getCourseName())
-                    .amount(loan.getLoanAmount())
-                    .status(loan.getStatus())
-                    .date(loan.getApplicationDate())
-                    .build());
-        });
-
-        return CustomerDashboardDto.builder()
-                .totalVehicleLoans(vehicleLoans.size())
-                .totalStudentLoans(studentLoans.size())
-                .totalOutstandingAmount(totalVehicleLoanAmount.add(totalStudentLoanAmount))
-                .totalMonthlyEMI(totalMonthlyEMI)
-                .accountBalance(totalBalance)
-                .recentActivities(recentActivities)
-                .build();
-    }
+//    public CustomerDashboardDto getCustomerDashboard(Long customerId) {
+//        // Get customer's vehicle loans
+//        var vehicleLoans = vehicleLoanRepository.findByCustomerIdOrderByApplicationDateDesc(customerId);
+//        var studentLoans = studentLoanRepository.findByCustomerIdOrderByApplicationDateDesc(customerId);
+//        var generalLoans = generalLoanRepository.findByCustomerIdOrderByApplicationDateDesc(customerId);
+//
+//
+//        // Calculate totals
+//        BigDecimal totalVehicleLoanAmount = vehicleLoans.stream()
+//                .map(loan -> loan.getOutstandingAmount() != null ? loan.getOutstandingAmount() : BigDecimal.ZERO)
+//                .reduce(BigDecimal.ZERO, BigDecimal::add);
+//
+//        BigDecimal totalStudentLoanAmount = studentLoans.stream()
+//                .map(loan -> loan.getOutstandingAmount() != null ? loan.getOutstandingAmount() : BigDecimal.ZERO)
+//                .reduce(BigDecimal.ZERO, BigDecimal::add);
+//
+//        BigDecimal totalGeneralLoanAmount = generalLoans.stream()
+//                .map(loan -> loan.getOutstandingAmount() != null ? loan.getOutstandingAmount() : BigDecimal.ZERO)
+//                .reduce(BigDecimal.ZERO, BigDecimal::add);
+//
+//        BigDecimal totalMonthlyEMI = BigDecimal.ZERO;
+//        totalMonthlyEMI = totalMonthlyEMI.add(vehicleLoans.stream()
+//                .filter(loan -> "ACTIVE".equals(loan.getStatus()) || "DISBURSED".equals(loan.getStatus()))
+//                .map(loan -> loan.getMonthlyEmi() != null ? loan.getMonthlyEmi() : BigDecimal.ZERO)
+//                .reduce(BigDecimal.ZERO, BigDecimal::add));
+//
+//        totalMonthlyEMI = totalMonthlyEMI.add(studentLoans.stream()
+//                .filter(loan -> "ACTIVE".equals(loan.getStatus()))
+//                .map(loan -> loan.getMonthlyEmi() != null ? loan.getMonthlyEmi() : BigDecimal.ZERO)
+//                .reduce(BigDecimal.ZERO, BigDecimal::add));
+//
+//        totalMonthlyEMI = totalMonthlyEMI.add(generalLoans.stream()
+//                .filter(loan -> "ACTIVE".equals(loan.getStatus()) || "DISBURSED".equals(loan.getStatus()))
+//                .map(loan -> loan.getMonthlyEmi() != null ? loan.getMonthlyEmi() : BigDecimal.ZERO)
+//                .reduce(BigDecimal.ZERO, BigDecimal::add));
+//
+//
+//        // Get account balance
+//        var accounts = accountRepository.findById(customerId);
+//        BigDecimal totalBalance = accounts.stream()
+//                .map(account -> account.getBalance())
+//                .reduce(BigDecimal.ZERO, BigDecimal::add);
+//
+//        // Recent loan activities
+//        List<RecentActivityDto> recentActivities = new ArrayList<>();
+//        vehicleLoans.stream().limit(3).forEach(loan -> {
+//            recentActivities.add(RecentActivityDto.builder()
+//                    .type("VEHICLE_LOAN")
+//                    .description("Vehicle Loan - " + loan.getVehicleType())
+//                    .amount(loan.getLoanAmount())
+//                    .status(loan.getStatus())
+//                    .date(loan.getApplicationDate())
+//                    .build());
+//        });
+//
+//        studentLoans.stream().limit(3).forEach(loan -> {
+//            recentActivities.add(RecentActivityDto.builder()
+//                    .type("STUDENT_LOAN")
+//                    .description("Student Loan - " + loan.getCourseName())
+//                    .amount(loan.getLoanAmount())
+//                    .status(loan.getStatus())
+//                    .date(loan.getApplicationDate())
+//                    .build());
+//        });
+//        generalLoans.stream().limit(3).forEach(loan -> {
+//            recentActivities.add(RecentActivityDto.builder()
+//                    .type("GENERAL_LOAN")
+//                    .description("General Loan")
+//                    .amount(loan.getPrincipal())
+//                    .status(loan.getStatus())
+//                    .date(loan.getCreatedAt())
+//                    .build());
+//        });
+//
+//
+//        return CustomerDashboardDto.builder()
+//                .totalVehicleLoans(vehicleLoans.size())
+//                .totalStudentLoans(studentLoans.size())
+//                .totalGeneralLoans(generalLoans.size())
+//                .totalOutstandingAmount(totalVehicleLoanAmount.add(totalStudentLoanAmount).add(totalGeneralLoanAmount))
+//                .totalMonthlyEMI(totalMonthlyEMI)
+//                .accountBalance(totalBalance)
+//                .recentActivities(recentActivities)
+//                .build();
+//    }
 
     public LoanOfficerDashboardDto getLoanOfficerDashboard(Long officerId) {
         // Get pending loans for review
@@ -159,6 +182,9 @@ public class LoanDashboardService {
         totalLoanPortfolio = totalLoanPortfolio.add(allStudentLoans.stream()
                 .map(loan -> loan.getLoanAmount())
                 .reduce(BigDecimal.ZERO, BigDecimal::add));
+        totalLoanPortfolio = totalLoanPortfolio.add(allGeneralLoans.stream()
+                .map(loan -> loan.getPrincipal())
+                .reduce(BigDecimal.ZERO, BigDecimal::add));
 
         BigDecimal totalOutstanding = BigDecimal.ZERO;
         totalOutstanding = totalOutstanding.add(allVehicleLoans.stream()
@@ -172,10 +198,20 @@ public class LoanDashboardService {
                 .reduce(BigDecimal.ZERO, BigDecimal::add));
 
         // Risk metrics
-        long overdueLoans = allVehicleLoans.stream()
-                .filter(loan -> "ACTIVE".equals(loan.getStatus()))
-                .mapToLong(loan -> 0L) // Would need overdue calculation logic
-                .sum();
+        long overdueLoans =
+                allVehicleLoans.stream()
+                        .filter(loan -> "ACTIVE".equals(loan.getStatus()))
+                        .mapToLong(loan -> 0L)
+                        .sum() +
+                        allStudentLoans.stream()
+                                .filter(loan -> "ACTIVE".equals(loan.getStatus()))
+                                .mapToLong(loan -> 0L)
+                                .sum() +
+                        allGeneralLoans.stream()
+                                .filter(loan -> "ACTIVE".equals(loan.getStatus()))
+                                .mapToLong(loan -> 0L)
+                                .sum();
+
 
         return AdminDashboardDto.builder()
                 .totalCustomers(totalCustomers)
@@ -186,7 +222,7 @@ public class LoanDashboardService {
                 .totalLoanPortfolio(totalLoanPortfolio)//will be shown as total amount of laons taken in frontend
                 .totalOutstandingAmount(totalOutstanding)
                 .overdueLoans(overdueLoans)
-                .collectionEfficiency(BigDecimal.valueOf(95.5)) // Mock data
+//                .collectionEfficiency(BigDecimal.valueOf(95.5)) // Mock data
                 .build();
     }
 

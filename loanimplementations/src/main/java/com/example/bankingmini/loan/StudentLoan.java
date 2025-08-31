@@ -32,6 +32,7 @@ public class StudentLoan {
     private Account account;
 
     @Column(name = "LOAN_AMOUNT", nullable = false)
+//    private BigDecimal principal;
     private BigDecimal loanAmount;
 
     @Column(name = "INTEREST_RATE", nullable = false)

@@ -6,18 +6,19 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-class CustomerDashboardDto {
-    private Integer totalVehicleLoans;
-    private Integer totalStudentLoans;
-    private BigDecimal totalOutstandingAmount;
-    private BigDecimal totalMonthlyEMI;
-    private BigDecimal accountBalance;
-    private List<RecentActivityDto> recentActivities;
-}
+//@Data
+//@Builder
+//@NoArgsConstructor
+//@AllArgsConstructor
+//class CustomerDashboardDto {
+//    private Integer totalVehicleLoans;
+//    private Integer totalStudentLoans;
+//    private Integer totalGeneralLoans;
+//    private BigDecimal totalOutstandingAmount;
+//    private BigDecimal totalMonthlyEMI;
+//    private BigDecimal accountBalance;
+//    private List<RecentActivityDto> recentActivities;
+//}
 
 @Data
 @Builder
@@ -45,7 +46,7 @@ class AdminDashboardDto {
     private BigDecimal totalLoanPortfolio;
     private BigDecimal totalOutstandingAmount;
     private Long overdueLoans;
-    private BigDecimal collectionEfficiency;
+//    private BigDecimal collectionEfficiency;
 }
 
 @Data

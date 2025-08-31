@@ -7,6 +7,8 @@ import com.example.bankingmini.account.AccountRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -87,12 +89,23 @@ public class VehicleLoanService {
         VehicleLoan loan = vehicleLoanRepository.findById(loanId)
                 .orElseThrow(() -> new RuntimeException("Loan not found"));
 
-        if (!loan.getCustomer().getId().equals(customerId)) {
+        // Get current authentication
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        boolean isAdmin = authentication.getAuthorities().stream()
+                .anyMatch(auth -> auth.getAuthority().equals("ROLE_ADMIN"));
+
+        boolean isLoanOfficer = authentication.getAuthorities().stream()
+                .anyMatch(auth -> auth.getAuthority().equals("ROLE_LOAN_OFFICER"));
+
+        // Only owner, admin, or loan officer can access
+        if (!isAdmin && !isLoanOfficer && !loan.getCustomer().getId().equals(customerId)) {
             throw new RuntimeException("Access denied: Loan does not belong to user");
         }
 
         return convertToDto(loan);
     }
+
 
     public Page<VehicleLoanDto> getPendingLoans(Pageable pageable) {
         Page<VehicleLoan> loans = vehicleLoanRepository.findByStatusOrderByApplicationDateDesc("PENDING", pageable);
