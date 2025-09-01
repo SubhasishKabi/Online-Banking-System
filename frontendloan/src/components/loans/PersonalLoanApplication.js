@@ -22,7 +22,9 @@ const PersonalLoanApplication = () => {
   const fetchAccounts = async () => {
     try {
       const response = await accountAPI.getAccounts()
+      // Adjust if your API returns nested data
       setAccounts(response.data)
+      console.log("Accounts fetched:", response.data)
     } catch (error) {
       console.error("Error fetching accounts:", error)
     }
@@ -88,13 +90,23 @@ const PersonalLoanApplication = () => {
         <form onSubmit={handleSubmit} className="loan-form">
           <div className="form-group">
             <label htmlFor="accountId">Select Account *</label>
-            <select id="accountId" name="accountId" value={formData.accountId} onChange={handleChange} required>
+            <select
+              id="accountId"
+              name="accountId"
+              value={formData.accountId}
+              onChange={handleChange}
+              required
+            >
               <option value="">Choose an account</option>
-              {accounts.map((account) => (
-                <option key={account.id} value={account.id}>
-                  {account.accountNumber} - Balance: ₹{account.balance}
-                </option>
-              ))}
+              {accounts.length === 0 ? (
+                <option value="">Loading accounts...</option>
+              ) : (
+                accounts.map((account) => (
+                  <option key={account.id} value={account.id.toString()}>
+                    {account.accountNumber} - Balance: ₹{account.balance?.toFixed(2)}
+                  </option>
+                ))
+              )}
             </select>
           </div>
 
@@ -160,7 +172,11 @@ const PersonalLoanApplication = () => {
           </button>
         </form>
 
-        {message && <div className={`message ${message.includes("Error") ? "error" : "success"}`}>{message}</div>}
+        {message && (
+          <div className={`message ${message.includes("Error") ? "error" : "success"}`}>
+            {message}
+          </div>
+        )}
       </div>
     </div>
   )
